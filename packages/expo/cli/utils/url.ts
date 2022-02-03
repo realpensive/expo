@@ -1,5 +1,6 @@
 import dns from 'dns';
 import fetch from 'node-fetch';
+import { URL, parse } from 'url';
 
 export function isUrlAvailableAsync(url: string): Promise<boolean> {
   return new Promise<boolean>((resolve) => {
@@ -10,11 +11,7 @@ export function isUrlAvailableAsync(url: string): Promise<boolean> {
 }
 
 export function isUrl(str: string) {
-  if (!str.startsWith('http://') && !str.startsWith('https://')) {
-    return false;
-  }
-
-  return true;
+  return !!/^https?:\/\//.test(str);
 }
 
 export async function isUrlOk(url: string): Promise<boolean> {
@@ -22,6 +19,27 @@ export async function isUrlOk(url: string): Promise<boolean> {
     const res = await fetch(url);
     return res.status === 200;
   } catch {
+    return false;
+  }
+}
+
+export function validateUrl(
+  urlString: string,
+  { protocols, requireProtocol }: { protocols?: string[]; requireProtocol?: boolean }
+) {
+  try {
+    // eslint-disable-next-line
+    new URL(urlString);
+    const parsed = parse(urlString);
+    if (!parsed.protocol && !requireProtocol) {
+      return true;
+    }
+    return protocols
+      ? parsed.protocol
+        ? protocols.map((x) => `${x.toLowerCase()}:`).includes(parsed.protocol)
+        : false
+      : true;
+  } catch (err) {
     return false;
   }
 }
