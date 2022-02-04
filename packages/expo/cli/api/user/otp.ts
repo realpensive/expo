@@ -5,7 +5,7 @@ import * as Log from '../../log';
 import { AbortCommandError, CommandError } from '../../utils/errors';
 import { learnMore } from '../../utils/link';
 import { promptAsync, selectAsync } from '../../utils/prompts';
-import { fetch } from '../rest/client';
+import { fetchAsync } from '../rest/client';
 import { loginAsync } from './user';
 
 export enum UserSecondFactorDeviceMethod {
@@ -100,7 +100,7 @@ async function promptForBackupOTPAsync(
 
   const device = smsNonPrimarySecondFactorDevices[selectedValue];
 
-  await fetch('/auth/send-sms-otp', {
+  await fetchAsync('/auth/send-sms-otp', {
     method: 'POST',
     body: JSON.stringify({
       username,

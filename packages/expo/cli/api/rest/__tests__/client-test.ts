@@ -5,7 +5,7 @@ import { URLSearchParams } from 'url';
 
 import { getExpoApiBaseUrl } from '../../endpoint';
 import { getAccessToken, getSessionSecret } from '../../user/sessionStorage';
-import { ApiV2Error, fetch } from '../client';
+import { ApiV2Error, fetchAsync } from '../client';
 
 jest.mock('../../user/sessionStorage');
 const asMock = (fn: any): jest.Mock => fn as jest.Mock;
@@ -33,7 +33,7 @@ it('converts Expo APIv2 error to ApiV2Error', async () => {
   expect.assertions(6);
 
   try {
-    await fetch('/test', {
+    await fetchAsync('/test', {
       method: 'POST',
     });
   } catch (error: any) {
@@ -64,7 +64,7 @@ it('converts Expo APIv2 error to ApiV2Error (invalid password)', async () => {
   expect.assertions(3);
 
   try {
-    await fetch('/test', {
+    await fetchAsync('/test', {
       method: 'POST',
     });
   } catch (error: any) {
@@ -82,7 +82,7 @@ it('does not convert non-APIv2 error to ApiV2Error', async () => {
   expect.assertions(2);
 
   try {
-    await fetch('test', {
+    await fetchAsync('test', {
       method: 'POST',
     });
   } catch (error: any) {
@@ -93,7 +93,7 @@ it('does not convert non-APIv2 error to ApiV2Error', async () => {
 
 it('makes a get request', async () => {
   nock(getExpoApiBaseUrl()).get('/v2/get-me?foo=bar').reply(200, 'Hello World');
-  const res = await fetch('/get-me', {
+  const res = await fetchAsync('/get-me', {
     method: 'GET',
     // Ensure our custom support for URLSearchParams works...
     searchParams: new URLSearchParams({
@@ -107,7 +107,7 @@ it('makes a get request', async () => {
 // This test ensures that absolute URLs are allowed with the abstraction.
 it('makes a request using an absolute URL', async () => {
   nock('http://example').get('/get-me?foo=bar').reply(200, 'Hello World');
-  const res = await fetch('http://example/get-me', {
+  const res = await fetchAsync('http://example/get-me', {
     searchParams: new URLSearchParams({
       foo: 'bar',
     }),
@@ -123,7 +123,7 @@ it('makes an authenticated request with access token', async () => {
     .matchHeader('authorization', (val) => val.length === 1 && val[0] === 'Bearer my-access-token')
     .get('/v2/get-me')
     .reply(200, 'Hello World');
-  const res = await fetch('/get-me', {
+  const res = await fetchAsync('/get-me', {
     method: 'GET',
   });
   expect(res.status).toEqual(200);
@@ -136,7 +136,7 @@ it('makes an authenticated request with session secret', async () => {
     .matchHeader('expo-session', (val) => val.length === 1 && val[0] === 'my-secret-token')
     .get('/v2/get-me')
     .reply(200, 'Hello World');
-  const res = await fetch('/get-me', {
+  const res = await fetchAsync('/get-me', {
     method: 'GET',
   });
   expect(res.status).toEqual(200);
@@ -151,7 +151,7 @@ it('only uses access token when both authentication methods are available', asyn
     .matchHeader('expo-session', (val) => !val)
     .get('/v2/get-me')
     .reply(200, 'Hello World');
-  const res = await fetch('/get-me', {
+  const res = await fetchAsync('/get-me', {
     method: 'GET',
   });
   expect(res.status).toEqual(200);

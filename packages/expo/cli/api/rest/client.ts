@@ -1,16 +1,15 @@
 import { getExpoHomeDirectory } from '@expo/config/build/getUserState';
 import { JSONValue } from '@expo/json-file';
-import fetchInstance, { FetchError } from 'node-fetch';
+import fetchInstance from 'node-fetch';
 import path from 'path';
-import { URL } from 'url';
 
 import { EXPO_BETA, EXPO_NO_CACHE } from '../../utils/env';
-import { isUrl } from '../../utils/url';
 import { getExpoApiBaseUrl } from '../endpoint';
 import { getAccessToken, getSessionSecret } from '../user/sessionStorage';
 import { FileSystemCache } from './cache/FileSystemCache';
 import { wrapFetchWithCache } from './cache/wrapFetchWithCache';
 import { FetchLike } from './client.types';
+import { wrapFetchWithPrefixUrl } from './wrapFetchWithPrefixUrl';
 
 export class ApiV2Error extends Error {
   readonly name = 'ApiV2Error';
@@ -34,10 +33,17 @@ export class ApiV2Error extends Error {
   }
 }
 
+/**
+ * An Expo server error that didn't return the expected error JSON information.
+ * The only 'expected' place for this is in testing, all other cases are bugs with the server.
+ */
 export class UnexpectedServerError extends Error {
   readonly name = 'UnexpectedServerError';
 }
 
+/**
+ * @returns a `fetch` function that will inject user authentication information and handle errors from the Expo API.
+ */
 export function wrapFetchWithCredentials(fetchFunction: FetchLike): FetchLike {
   return async function fetchWithCredentials(url, options = {}) {
     if (Array.isArray(options.headers)) {
@@ -80,28 +86,14 @@ export function wrapFetchWithCredentials(fetchFunction: FetchLike): FetchLike {
   };
 }
 
-function wrapFetchWithPrefixUrl(fetch: FetchLike, baseUrl: string): FetchLike {
-  return (url, init) => {
-    if (typeof url === 'string') {
-      let parsed: URL;
-      if (isUrl(url)) {
-        parsed = new URL(url);
-      } else {
-        parsed = new URL(baseUrl + url);
-      }
-      if (init.searchParams) {
-        parsed.search = init.searchParams.toString();
-      }
-      return fetch(parsed.toString(), init);
-    }
-    return fetch(url, init);
-  };
-}
-
 const fetchWithBaseUrl = wrapFetchWithPrefixUrl(fetchInstance, getExpoApiBaseUrl() + '/v2');
 
 const fetchWithCredentials = wrapFetchWithCredentials(fetchWithBaseUrl);
 
+/**
+ * Create an instance of the fully qualified fetch command (auto authentication and api) but with caching in the '~/.expo' directory.
+ * Caching is disabled automatically if the EXPO_NO_CACHE or EXPO_BETA environment variables are enabled.
+ */
 export function createCachedFetch({
   fetch,
   cacheDirectory,
@@ -125,4 +117,5 @@ export function createCachedFetch({
   );
 }
 
-export const fetch = fetchWithCredentials;
+/** Instance of fetch with automatic base URL pointing to the Expo API, user credential injection, and API error handling. Caching not included.  */
+export const fetchAsync = wrapFetchWithCredentials(fetchWithBaseUrl);

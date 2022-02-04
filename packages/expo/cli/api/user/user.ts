@@ -5,7 +5,7 @@ import * as Analytics from '../../utils/analytics/rudderstackClient';
 import { graphqlClient } from '../graphql/client';
 import { CurrentUserQuery } from '../graphql/generated';
 import { UserQuery } from '../graphql/queries/UserQuery';
-import { fetch } from '../rest/client';
+import { fetchAsync } from '../rest/client';
 import { getAccessToken, getSessionSecret, setSessionAsync } from './sessionStorage';
 
 export type Actor = NonNullable<CurrentUserQuery['meActor']>;
@@ -50,7 +50,7 @@ export async function loginAsync(json: {
   password: string;
   otp?: string;
 }): Promise<void> {
-  const res = await fetch('/auth/loginAsync', {
+  const res = await fetchAsync('/auth/loginAsync', {
     method: 'POST',
     body: JSON.stringify(json),
   });
